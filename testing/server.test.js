@@ -28,7 +28,7 @@ describe('API server', () => {
         request(api).get('/entries').expect(200).expect(data, done)
     })
 
-    test('get post entry by id', (done) => {
+    test('get entry by id', (done) => {
         request(api).get('/entries/2').expect(200).expect(data[1], done)
     })
 
@@ -36,17 +36,51 @@ describe('API server', () => {
         request(api).get('/entries/-1').expect({message: 'This entry does not exist!'}, done)
     })
 
+    test('get error for post entry with out-of-bounds id', (done) => {
+        request(api).get('/entries/5').expect({message: 'This entry does not exist!'}, done)
+    })
+
     test('post new entry', (done) => {
         request(api).post('/entries').send({
-            "author": "John Doe",
+            "author": "Maulers",
             "title": "Test Title",
-            "content": "Lorem ipsum is placeholder text commonly used in the graphic, print, and publishing indu"
-        }).expect(201, done)//).expect(data[data.length - 1], done). // Check id
+            "content": "Test Content"
+        }).expect(201, done);
     })
 
     test('update existing entry', (done) => {
         request(api).put('/entries/2').send({
             "comment": "This is a test comment"
-        }).expect(201, done) // Check comments length and last comment
+        }).expect(201, done) 
+    })
+
+    test('delete last comment', async () => {
+        request(api).put('/entries/2').send({
+            "del": "last"
+        }).expect(201);
+    })
+
+    for(let i = 0; i < 3; i++) {
+        test('add a comment', (done) => {
+            request(api).put('/entries/3').send({
+                "comment": "I'm going to delete this soon"
+            }).expect(201, done)
+        })
+    }
+
+    test('get all comments for a specific entry', (done) => {
+        request(api).get('/entries/3/comments').expect(200, done)
+    })
+
+    test('delete all comments', (done) => {
+        request(api).put('/entries/3').send({
+            "del": "all"
+        }).expect(201, done)
+    })
+
+    test('responds to delete /entries/:id with status 204', async () => {
+        await request(api).delete('/entries/5').expect(204);
+        const updatedEntries = await request(api).get('/entries');
+        expect(updatedEntries.body.length).toBe(4);
     })
 })
